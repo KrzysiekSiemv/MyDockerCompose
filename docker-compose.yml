@@ -1,0 +1,77 @@
+services:
+  nginx:
+    image: nginx:latest
+    container_name: local_nginx
+    ports:
+      - "8080:80"
+    volumes:
+      - ./html:/var/www/html
+    configs:
+      - source: nginx_default_conf
+        target: /etc/nginx/conf.d/default.conf
+    depends_on:
+      - php
+
+  php:
+    image: php:8.2-fpm
+    container_name: local_php
+    ports:
+      - "9000:9000"
+    volumes:
+      - ./html:/var/www/html
+
+  mysql:
+    image: mysql:latest
+    container_name: local_mysql
+    ports:
+      - "3390:3306"
+    environment:
+      MYSQL_ALLOW_EMPTY_PASSWORD: "yes"
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: local_phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: ""
+    depends_on:
+      - mysql
+
+  redis:
+    image: redis:latest
+    container_name: local_redis
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:latest
+    container_name: local_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: "trust"
+
+configs:
+  nginx_default_conf:
+    content: |
+      server {
+          listen 80;
+          server_name localhost;
+
+          root /var/www/html;
+          index index.php index.html index.htm;
+
+          location / {
+              try_files $$uri $$uri/ =404;
+          }
+
+          location ~ \.php$$ {
+              fastcgi_pass php:9000;
+              fastcgi_index index.php;
+              fastcgi_param SCRIPT_FILENAME $$document_root$$fastcgi_script_name;
+              include fastcgi_params;
+          }
+      }
